@@ -1,0 +1,517 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Plan Manager — Ultimate</title>
+
+<!-- ==========================
+     CSS STYLES
+========================== -->
+<style>
+/* Root CSS variables for dark theme */
+:root{
+  --bg:#0f1724; 
+  --panel:rgba(255,255,255,0.06); 
+  --card:#0b1220; 
+  --text:#e6eef8; 
+  --muted:#9aa6b2; 
+  --accent:#5aa7ff; 
+  --glass: rgba(255,255,255,0.04);
+  --radius:14px; 
+  --shadow: 0 10px 30px rgba(2,6,23,0.6);
+}
+
+/* Variables for light theme */
+html[data-theme='light']{
+  --bg:#eef4ff; 
+  --panel:rgba(255,255,255,0.9); 
+  --card:#ffffff; 
+  --text:#0b1220; 
+  --muted:#51607a; 
+  --accent:#316dff; 
+  --glass: rgba(255,255,255,0.7); 
+  --shadow:0 8px 26px rgba(16,24,40,0.08);
+}
+
+/* Global styles */
+*{box-sizing:border-box;}
+body{
+  margin:0;
+  font-family:Inter,Segoe UI,Roboto,system-ui,Arial;
+  background:var(--bg);
+  color:var(--text);
+  -webkit-font-smoothing:antialiased;
+}
+
+/* Main app container */
+.app{
+  max-width:1100px;
+  margin:28px auto;
+  padding:20px;
+}
+
+/*  Header layout  */
+header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+  margin-bottom:18px;
+}
+
+/*  Page title  */
+h1{margin:0;font-size:22px;}
+
+/*  Muted text  */
+.muted{color:var(--muted);font-size:13px;}
+
+/*  Button styling  */
+.btn{
+  background:var(--accent);
+  color:white;
+  border:none;
+  padding:8px 12px;
+  border-radius:10px;
+  cursor:pointer;
+  font-weight:600;
+}
+
+/*  Ghost buttons  */
+.btn.ghost{
+  background:transparent;
+  color:var(--text);
+  border:1px solid rgba(255,255,255,0.06);
+}
+
+/*  Top controls layout  */
+.top-controls{
+  display:flex;
+  gap:10px;
+  align-items:center;
+  flex-wrap:wrap;
+}
+
+/*1Search bar styling */
+.searchbar{
+  display:flex;
+  gap:8px;
+  align-items:center;
+  background:var(--panel);
+  padding:8px;
+  border-radius:12px;
+}
+.searchbar input{
+  border:0;
+  background:transparent;
+  color:var(--text);
+  outline:none;
+  width:220px;
+}
+
+/*  Grid layout for cards  */
+.card-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(260px,1fr));
+  gap:16px;
+  margin-top:16px;
+}
+
+/*  Individual card styling  */
+.card{
+  background:var(--card);
+  padding:14px;
+  border-radius:12px;
+  border:1px solid rgba(255,255,255,0.03);
+  box-shadow:var(--shadow);
+  transition:transform .15s;
+}
+.card:hover{transform:translateY(-6px);}
+.card h4{margin:0;}
+.card .meta{font-size:12px;color:var(--muted);margin-top:6px;}
+.card img{width:100%;height:auto;border-radius:8px;margin-top:8px;}
+
+/*  Card action buttons  */
+.card-actions{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;}
+
+/*  Modal styling  */
+.modal{
+  position:fixed;
+  inset:0;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  background:rgba(2,6,23,0.6);
+  backdrop-filter: blur(6px);
+  z-index:60;
+}
+.modal.open{display:flex;}
+.modal-panel{
+  width:95%;
+  max-width:560px;
+  background:var(--card);
+  padding:18px;
+  border-radius:14px;
+  box-shadow:var(--shadow);
+}
+
+/*  Form input styling  */
+label{font-size:13px;color:var(--muted);display:block;margin-top:8px;}
+input[type=text],textarea,select{
+  width:100%;
+  padding:10px;
+  border-radius:10px;
+  border:1px solid rgba(0,0,0,0.06);
+  margin-top:6px;
+  background:transparent;
+  color:var(--text);
+}
+textarea{min-height:100px;}
+
+/*  Layout  */
+.row{display:flex;gap:8px;align-items:center;}
+.right{margin-left:auto;}
+
+/*  Responsive adjustments  */
+@media (max-width:720px){ 
+  .searchbar input{width:120px} 
+  .card-grid{grid-template-columns:repeat(auto-fill,minmax(220px,1fr))} 
+}
+
+/*  Dragging effect  */
+.dragging{opacity:0.5;}
+</style>
+</head>
+
+<body>
+
+<!-- ==========================
+     MAIN APP STRUCTURE
+========================== -->
+<div class="app">
+
+  <!--  HEADER SECTION  -->
+  <header>
+    <div>
+      <h1>Plan Manager</h1>
+      <div class="muted">All features: multi-user, search, tags, drag & drop, themes</div>
+    </div>
+
+    <!--  TOP CONTROL PANEL  -->
+    <div class="top-controls">
+
+      <!--  SEARCH BAR  -->
+      <div class="searchbar">
+        <input id="searchInput" placeholder="Search plans, tags..." />
+        <select id="filterTag"><option value="">All tags</option></select>
+      </div>
+
+      <!--  BUTTONS AND USER INFO  -->
+      <div class="row">
+        <button id="newBtn" class="btn">+ New</button> <!-- Open create plan modal -->
+        <button id="themeBtn" class="btn ghost">Toggle Theme</button> <!-- Switch light/dark -->
+        <div id="userInfo" class="muted" style="margin-left:8px">Not logged in</div> <!-- Shows current user -->
+        <button id="authBtn" class="btn ghost">Login / Register</button> <!-- Open login/register modal -->
+      </div>
+    </div>
+  </header>
+
+  <!--  MAIN CARD GRID  -->
+  <main>
+    <div id="cards" class="card-grid"></div> <!-- card container-->
+  </main>
+</div>
+
+<!-- ==========================
+     LOGIN / REGISTER 
+========================== -->
+<div id="authModal" class="modal" aria-hidden>
+  <div class="modal-panel">
+    <h3 id="authTitle">Login or Register</h3>
+    <label>Username</label>
+    <input id="authUser" type="text" />
+    <label>Password</label>
+    <input id="authPass" type="text" />
+    <div style="display:flex;gap:8px;margin-top:12px;justify-content:flex-end">
+      <button id="loginAction" class="btn">Login</button>
+      <button id="registerAction" class="btn ghost">Register</button>
+      <button id="closeAuth" class="btn ghost">Close</button>
+    </div>
+    <div style="margin-top:10px" class="muted">Passwords are hashed client-side using SHA-256 and saved per user.</div>
+  </div>
+</div>
+
+<!-- ==========================
+     CREATE / EDIT PLAN 
+========================== -->
+<div id="editModal" class="modal" aria-hidden>
+  <div class="modal-panel">
+    <h3 id="editTitle">Create Plan</h3>
+    <label>Title</label>
+    <input id="titleInput" type="text" />
+    <label>Tags (comma separated)</label>
+    <input id="tagsInput" type="text" placeholder="work, personal" />
+    <label>Description</label>
+    <textarea id="descInput"></textarea>
+    <label>Image</label>
+    <input id="imgInput" type="file" accept="image/*" />
+    <img id="imgPreview" style="display:none;max-height:180px;margin-top:8px;border-radius:8px" />
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px">
+      <button id="saveAction" class="btn">Save</button>
+      <button id="cancelEdit" class="btn ghost">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ==========================
+     JAVASCRIPT FUNCTIONALITY
+========================== -->
+<script>
+/* Shortcut to select element by ID */
+const $ = id => document.getElementById(id);
+
+/* Unique ID generator for new plans */
+const uid = ()=> 'p_'+Math.random().toString(36).slice(2,9);
+
+/*  Current user and plans  */
+let current={user:null};
+
+/* LOCAL STORAGE */
+function saveUsers(u){localStorage.setItem('pm_users',JSON.stringify(u));} // Save all users
+function loadUsers(){return JSON.parse(localStorage.getItem('pm_users')||'{}');} // Load all users
+function savePlans(user,p){localStorage.setItem('pm_plans_'+user,JSON.stringify(p));} // Save plans for user
+function loadPlans(user){return JSON.parse(localStorage.getItem('pm_plans_'+user)||'{}');} // Load plans for user
+
+/* FUNCTION FOR PASSWORDS  */
+async function hash(text){
+  const u=new TextEncoder().encode(text);
+  const h=await crypto.subtle.digest('SHA-256',u);
+  return Array.from(new Uint8Array(h)).map(x=>x.toString(16).padStart(2,'0')).join('');
+}
+
+/*  THEME SWITCHING  */
+function setTheme(t){
+  document.documentElement.setAttribute('data-theme',t);
+  localStorage.setItem('pm_theme',t);
+}
+(function(){setTheme(localStorage.getItem('pm_theme')||'dark');})(); // Load saved theme
+$('themeBtn').onclick=()=>setTheme(document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark'); // Toggle theme
+
+/* SELECTORS */
+const cards=$('cards'); 
+const searchInput=$('searchInput'); 
+const filterTag=$('filterTag');
+
+/*  LOGIN MODAL  */
+$('authBtn').onclick=()=>openModal('authModal');
+$('closeAuth').onclick=()=>closeModal('authModal');
+
+/* LOGIN FUNCTION */
+$('loginAction').onclick=async ()=>{
+  const user=$('authUser').value.trim(); 
+  const pass=$('authPass').value;
+  if(!user||!pass) return alert('Enter both fields');
+  const users=loadUsers(); 
+  const h=await hash(pass);
+  if(users[user] && users[user].passwordHash===h){
+    current.user=user;
+    current.plans=loadPlans(user);
+    closeModal('authModal');
+    renderUI();
+    alert('Logged in');
+  } else alert('Invalid credentials');
+};
+
+/* REGISTER FUNCTION */
+$('registerAction').onclick=async ()=>{
+  const user=$('authUser').value.trim(); 
+  const pass=$('authPass').value;
+  if(!user||!pass) return alert('Enter both fields');
+  const users=loadUsers(); 
+  if(users[user]) return alert('User exists');
+  const h=await hash(pass); 
+  users[user]={passwordHash:h,created:new Date().toISOString()};
+  saveUsers(users); 
+  current.user=user; 
+  current.plans={}; 
+  savePlans(user,{});
+  closeModal('authModal'); 
+  renderUI(); 
+  alert('Registered and logged in');
+};
+
+/* MODAL OPEN/CLOSE   */
+function openModal(id){$(id).classList.add('open');$(id).setAttribute('aria-hidden','false');}
+function closeModal(id){$(id).classList.remove('open');$(id).setAttribute('aria-hidden','true');}
+
+/* NEW PLAN HANDLER  */
+let editingId=null;
+$('newBtn').onclick=()=>{
+  editingId=null;
+  $('editTitle').innerText='Create Plan';
+  $('titleInput').value='';
+  $('tagsInput').value='';
+  $('descInput').value='';
+  $('imgPreview').style.display='none';
+  $('imgInput').value='';
+  openModal('editModal');
+}
+$('cancelEdit').onclick=()=>{closeModal('editModal'); editingId=null;}
+
+/*  IMAGE PREVIEW ON UPLOAD  */
+$('imgInput').onchange=e=>{
+  const f=e.target.files[0];
+  if(!f) return;
+  const r=new FileReader();
+  r.onload=ev=>{
+    $('imgPreview').src=ev.target.result;
+    $('imgPreview').style.display='block';
+  };
+  r.readAsDataURL(f);
+}
+
+/* SAVE PLAN */
+$('saveAction').onclick=()=>{
+  if(!current.user) return alert('Login first');
+  const title=$('titleInput').value.trim(); if(!title) return alert('Title required');
+  const tags=$('tagsInput').value.split(',').map(s=>s.trim()).filter(Boolean);
+  const desc=$('descInput').value.trim();
+  const img=$('imgPreview').src && $('imgPreview').style.display!=='none'?$('imgPreview').src:null;
+  const plans=current.plans||{};
+  for(const k in plans){
+    if(k!==editingId && plans[k].title.toLowerCase()===title.toLowerCase()) return alert('Title already exists');
+  }
+  if(editingId){
+    plans[editingId]={...plans[editingId],title,tags,desc,img,updated:new Date().toISOString()};
+  } else {
+    const id=uid();
+    plans[id]={id,title,tags,desc,img,pinned:false,updated:new Date().toISOString()};
+  }
+  current.plans=plans; 
+  savePlans(current.user,plans); 
+  closeModal('editModal'); 
+  renderUI(); 
+  editingId=null;
+};
+
+/* ===== RENDER UI FUNCTION ===== */
+function renderUI(){
+  // Update user info and auth button
+  $('userInfo').innerText=current.user?'User: '+current.user:'Not logged in';
+  $('authBtn').innerText=current.user?'Logout':'Login / Register';
+  if(current.user){
+    $('authBtn').onclick=()=>{if(confirm('Logout?')){current.user=null;current.plans=null;renderUI();}};
+  } else {
+    $('authBtn').onclick=()=>openModal('authModal');
+  }
+
+  // Update tag filter options
+  filterTag.innerHTML='<option value="">All tags</option>';
+  const tagSet=new Set(); 
+  if(current.plans) for(const k in current.plans) (current.plans[k].tags||[]).forEach(t=>tagSet.add(t));
+  [...tagSet].sort().forEach(t=>{
+    const opt=document.createElement('option'); 
+    opt.value=t; opt.textContent=t; 
+    filterTag.appendChild(opt);
+  });
+
+  // Clear card grid
+  cards.innerHTML=''; if(!current.plans) return;
+
+  // Sort and filter plans
+  const arr=Object.values(current.plans).sort((a,b)=>{
+    if(a.pinned!==b.pinned) return a.pinned?-1:1;
+    return new Date(b.updated)-new Date(a.updated);
+  });
+  const q=(searchInput.value||'').toLowerCase(); 
+  const selTag=filterTag.value;
+  
+  arr.filter(p=>{
+    if(selTag && !(p.tags||[]).includes(selTag)) return false;
+    if(!q) return true;
+    return p.title.toLowerCase().includes(q) || (p.desc||'').toLowerCase().includes(q) || (p.tags||[]).join(' ').toLowerCase().includes(q);
+  }).forEach(p=>{
+    // Create card element
+    const card=document.createElement('div'); 
+    card.className='card'; 
+    card.draggable=true; 
+    card.dataset.id=p.id;
+
+    card.innerHTML=`<h4>${escapeHtml(p.title)} ${p.pinned?'<span style="color:var(--accent);font-weight:700">★</span>':''}</h4>
+                    <div class='meta'>${(p.tags||[]).map(t=>'#'+t).join(' ')} • ${new Date(p.updated).toLocaleString()}</div>
+                    <p>${escapeHtml(p.desc||'')}</p>`;
+    if(p.img){const img=document.createElement('img');img.src=p.img;card.appendChild(img);}
+
+    // Card action buttons
+    const act=document.createElement('div');act.className='card-actions';
+    const btnEdit=document.createElement('button');btnEdit.className='btn ghost';btnEdit.textContent='Edit';
+    btnEdit.onclick=()=>{
+      editingId=p.id;
+      $('titleInput').value=p.title;
+      $('tagsInput').value=(p.tags||[]).join(', ');
+      $('descInput').value=p.desc||'';
+      if(p.img){$('imgPreview').src=p.img;$('imgPreview').style.display='block';}else{$('imgPreview').style.display='none'};
+      openModal('editModal');
+    };
+    const btnDelete=document.createElement('button');btnDelete.className='btn ghost';btnDelete.textContent='Delete';
+    btnDelete.onclick=()=>{if(confirm('Delete?')){delete current.plans[p.id];savePlans(current.user,current.plans);renderUI();}};
+    const btnPin=document.createElement('button');btnPin.className='btn ghost';btnPin.textContent=p.pinned?'Unpin':'Pin';
+    btnPin.onclick=()=>{p.pinned=!p.pinned;p.updated=new Date().toISOString();savePlans(current.user,current.plans);renderUI();};
+    act.appendChild(btnEdit);act.appendChild(btnDelete);act.appendChild(btnPin);card.appendChild(act);
+
+    // Drag events
+    card.addEventListener('dragstart',e=>{card.classList.add('dragging');e.dataTransfer.setData('text/plain',p.id);});
+    card.addEventListener('dragend',e=>{card.classList.remove('dragging');savePlans(current.user,current.plans);renderUI();});
+    card.addEventListener('dragover',e=>{
+      e.preventDefault();
+      const after=getDragAfterElement(cards,e.clientY);
+      const dragging=document.querySelector('.dragging');
+      if(after==null) cards.appendChild(dragging); else cards.insertBefore(dragging,after);
+    });
+    cards.appendChild(card);
+  });
+}
+
+/*  DRAG AND DROP */
+function getDragAfterElement(container,y){
+  const draggableElements=[...container.querySelectorAll('.card:not(.dragging)')];
+  return draggableElements.reduce((closest,child)=>{
+    const box=child.getBoundingClientRect();
+    const offset=y-box.top-box.height/2;
+    if(offset<0 && offset>closest.offset) return {offset:offset,element:child};
+    else return closest;
+  },{offset:Number.NEGATIVE_INFINITY}).element;
+}
+
+/*  SEARCH AND FILTER  */
+searchInput.oninput=()=>renderUI(); 
+filterTag.onchange=()=>renderUI();
+
+/*  HTML ESCAPE HELPER  */
+function escapeHtml(s){if(!s)return'';return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+/*  INITIALIZATION  */
+(function(){
+  current.user=null; current.plans=null; renderUI();
+  const t=localStorage.getItem('pm_theme');
+  if(t) document.documentElement.setAttribute('data-theme',t);
+})();
+
+/* DROP FOR REORDERING */
+cards.addEventListener('drop',e=>{
+  e.preventDefault();
+  if(!current.user||!current.plans) return;
+  const newOrder={};
+  [...cards.children].forEach(child=>{
+    const id=child.dataset.id;
+    if(id && current.plans[id]) newOrder[id]=current.plans[id];
+  });
+  current.plans=newOrder;
+  savePlans(current.user,current.plans);
+  renderUI();
+});
+cards.addEventListener('dragover',e=>e.preventDefault());
+</script>
+
+</body>
+</html>
